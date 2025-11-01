@@ -67,7 +67,11 @@ useEffect(() => {
           isMe: msg.sender === username,
           id: key,
         }))
-        .filter(msg => msg.sender && msg.time); 
+        .filter(msg => 
+          msg.sender && 
+          msg.sender.trim() !== '' && 
+          (msg.text?.trim() !== '' || msg.imageUrl)
+        ); 
       setMessages(messagesArray);
     } else {
       setMessages([]);
@@ -124,37 +128,41 @@ useEffect(() => {
     typingTimeoutRef.current = setTimeout(() => set(typingRef, false), 3000);
   }, [username]);
 
-  const handleSend = async () => {
-    if (cooldown > 0) return;
-    if (!message.trim() && !mediaFile) return;
+const handleSend = async () => {
+  if (cooldown > 0) return;
+  if (!message.trim() && !mediaFile) return;
 
-    setUploading(true);
+  if (!message.trim() && !mediaFile) {
+    return;
+  }
 
-    let imageUrl = null;
-    if (mediaFile) {
-      try {
-        const uploaded = await uploadToImageBB(mediaFile);
-        imageUrl = uploaded.url;
-      } catch (err) {
-        console.error(err);
-        setUploading(false);
-        return;
-      }
+  setUploading(true);
+
+  let imageUrl = null;
+  if (mediaFile) {
+    try {
+      const uploaded = await uploadToImageBB(mediaFile);
+      imageUrl = uploaded.url;
+    } catch (err) {
+      console.error(err);
+      setUploading(false);
+      return;
     }
+  }
 
-    await push(ref(db, 'messages'), {
-      text: message,
-      sender: username,
-      time: new Date().toLocaleTimeString(),
-      imageUrl: imageUrl || null,
-    });
+  await push(ref(db, 'messages'), {
+    text: message.trim(), 
+    sender: username,
+    time: new Date().toLocaleTimeString(),
+    imageUrl: imageUrl || null,
+  });
 
-    setCooldown(5);
-    setMessage('');
-    setMediaFile(null);
-    setMediaPreview(null);
-    setUploading(false);
-  };
+  setCooldown(5);
+  setMessage('');
+  setMediaFile(null);
+  setMediaPreview(null);
+  setUploading(false);
+};
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -276,4 +284,3 @@ useEffect(() => {
     </div>
   );
 };
-
