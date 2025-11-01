@@ -156,28 +156,23 @@ export const Chat = ({ username }) => {
     typingTimeoutRef.current = setTimeout(() => set(typingRef, false), 3000);
   }, [username]);
 
-  const handleSend = async () => {
-    if (cooldown > 0) return;
-    if (!message.trim() && !mediaFile) return;
+const handleSend = async () => {
+  if (cooldown > 0) return;
+  if (!message.trim() && !mediaFile) return;
 
-    // Дополнительная проверка на пустое сообщение
-    if (!message.trim() && !mediaFile) {
+  setUploading(true);
+
+  let imageUrl = null;
+  if (mediaFile) {
+    try {
+      const uploaded = await uploadToFirebase(mediaFile);
+      imageUrl = uploaded.url;
+    } catch (err) {
+      console.error('Ошибка загрузки изображения:', err);
+      setUploading(false);
       return;
     }
-
-    setUploading(true);
-
-    let imageUrl = null;
-    if (mediaFile) {
-      try {
-        const uploaded = await uploadToImageBB(mediaFile);
-        imageUrl = uploaded.url;
-      } catch (err) {
-        console.error(err);
-        setUploading(false);
-        return;
-      }
-    }
+  }
 
     await push(ref(db, 'messages'), {
       text: message.trim(), // обрезаем пробелы
@@ -313,4 +308,5 @@ export const Chat = ({ username }) => {
     </div>
   );
 };
+
 
