@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ref, push, onValue, set, onDisconnect, get } from 'firebase/database';
 import { db } from '../../shared/api/firebase';
-import { uploadToFirebase } from '../../shared/lib/imageUpload';
+// Временно используем ImageBB
+import { uploadToImageBB } from '../../shared/lib/imagebb';
 import { ImageOverlay } from './ImageOverlay';
 import styles from './Chat.module.scss';
 
@@ -41,7 +42,6 @@ export const Chat = ({ username }) => {
       
       if (data) {
         const cleanupPromises = Object.entries(data).map(async ([key, msg]) => {
-          // Удаляем сообщения без отправителя или с пустым текстом
           if (!msg.sender || !msg.sender.trim() || msg.sender === 'undefined' || 
               (!msg.text?.trim() && !msg.imageUrl)) {
             await set(ref(db, `messages/${key}`), null);
@@ -81,7 +81,6 @@ export const Chat = ({ username }) => {
   }, [cooldown]);
 
   useEffect(() => {
-    // Очистка пустых сообщений при загрузке
     cleanupEmptyMessages();
 
     const messagesRef = ref(db, 'messages');
@@ -127,10 +126,6 @@ export const Chat = ({ username }) => {
     set(userRef, true);
     onDisconnect(userRef).remove();
 
-    if (Notification.permission !== 'granted') {
-      Notification.requestPermission();
-    }
-
     return () => {
       unsubscribeMessages();
       unsubscribeTyping();
@@ -160,31 +155,35 @@ export const Chat = ({ username }) => {
     if (cooldown > 0) return;
     if (!message.trim() && !mediaFile) return;
 
-    // Дополнительная проверка на пустое сообщение
-    if (!message.trim() && !mediaFile) {
-      return;
-    }
-
     setUploading(true);
 
     let imageUrl = null;
     if (mediaFile) {
       try {
-        const uploaded = await uploadToFirebase(mediaFile);
+        console.log('Начинаем загрузку изображения...');
+        const uploaded = await uploadToImageBB(mediaFile);
         imageUrl = uploaded.url;
+        console.log('Изображение загружено, URL:', imageUrl);
       } catch (err) {
-        console.error(err);
+        console.error('Ошибка загрузки:', err);
+        alert('Ошибка загрузки изображения. Попробуйте другой файл.');
         setUploading(false);
         return;
       }
     }
 
-    await push(ref(db, 'messages'), {
-      text: message.trim(), // обрезаем пробелы
-      sender: username,
-      time: new Date().toLocaleTimeString(),
-      imageUrl: imageUrl || null,
-    });
+    try {
+      await push(ref(db, 'messages'), {
+        text: message.trim(),
+        sender: username,
+        time: new Date().toLocaleTimeString(),
+        imageUrl: imageUrl || null,
+      });
+      console.log('Сообщение отправлено в Firebase');
+    } catch (error) {
+      console.error('Ошибка отправки сообщения:', error);
+      alert('Ошибка отправки сообщения');
+    }
 
     setCooldown(5);
     setMessage('');
@@ -203,6 +202,13 @@ export const Chat = ({ username }) => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    
+    // Проверяем размер файла (макс 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Файл слишком большой. Максимальный размер: 5MB');
+      return;
+    }
+    
     setMediaFile(file);
     setMediaPreview(URL.createObjectURL(file));
   };
@@ -213,6 +219,7 @@ export const Chat = ({ username }) => {
   };
 
   const openImageFullscreen = (imageUrl) => {
+    console.log('Открываем изображение:', imageUrl);
     setExpandedImage(imageUrl);
   };
 
@@ -292,7 +299,12 @@ export const Chat = ({ username }) => {
       <div className={styles.inputContainer}>
         <label className={styles.uploadButton}>
           <ImageIcon />
-          <input type="file" accept="image/*,image/gif" onChange={handleImageChange} />
+          <input 
+            type="file" 
+            accept="image/*,image/gif" 
+            onChange={handleImageChange}
+            disabled={uploading}
+          />
         </label>
         <textarea
           className={styles.textField}
