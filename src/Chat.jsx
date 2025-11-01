@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ref, push, onValue, set, onDisconnect } from 'firebase/database';
-import { db } from '../../../../shared/api/firebase';
-import { uploadToImageBB } from '../../../../shared/lib/imagebb';
-import styles from './Chat.module.css';
+import { db } from '../../shared/api/firebase';
+import { uploadToImageBB } from '../../shared/lib/imagebb';
+import { ImageOverlay } from './ImageOverlay';
+import styles from './Chat.module.scss';
 
 const SendIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -16,32 +17,62 @@ const ImageIcon = () => (
   </svg>
 );
 
-export const Chat = ({ username, onLogout }) => {
+export const Chat = ({ username }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [mediaPreview, setMediaPreview] = useState(null);
   const [mediaFile, setMediaFile] = useState(null);
+  const [cooldown, setCooldown] = useState(0);
+  const [expandedImage, setExpandedImage] = useState(null);
 
   const listRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const cooldownRef = useRef(null);
 
   useEffect(() => {
-    const messagesRef = ref(db, 'messages');
-    const unsubscribeMessages = onValue(messagesRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const messagesArray = Object.entries(data).map(([key, msg]) => ({
+    if (cooldown > 0) {
+      cooldownRef.current = setInterval(() => {
+        setCooldown(prev => {
+          if (prev <= 1) {
+            clearInterval(cooldownRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (cooldownRef.current) {
+        clearInterval(cooldownRef.current);
+      }
+    }
+
+    return () => {
+      if (cooldownRef.current) {
+        clearInterval(cooldownRef.current);
+      }
+    };
+  }, [cooldown]);
+
+useEffect(() => {
+  const messagesRef = ref(db, 'messages');
+  const unsubscribeMessages = onValue(messagesRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      const messagesArray = Object.entries(data)
+        .map(([key, msg]) => ({
           ...msg,
           isMe: msg.sender === username,
           id: key,
-        }));
-        setMessages(messagesArray);
-      } else setMessages([]);
-    });
+        }))
+        .filter(msg => msg.sender && msg.time); 
+      setMessages(messagesArray);
+    } else {
+      setMessages([]);
+    }
+  });
 
     const typingRef = ref(db, 'typing');
     const unsubscribeTyping = onValue(typingRef, (snapshot) => {
@@ -54,6 +85,16 @@ export const Chat = ({ username, onLogout }) => {
       }
     });
 
+    const onlineRef = ref(db, 'onlineUsers');
+    const unsubscribeOnline = onValue(onlineRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      setOnlineUsers(Object.keys(data));
+    });
+
+    const userRef = ref(db, `onlineUsers/${username}`);
+    set(userRef, true);
+    onDisconnect(userRef).remove();
+
     if (Notification.permission !== 'granted') {
       Notification.requestPermission();
     }
@@ -61,35 +102,30 @@ export const Chat = ({ username, onLogout }) => {
     return () => {
       unsubscribeMessages();
       unsubscribeTyping();
+      unsubscribeOnline();
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, [username]);
 
   useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
   }, [messages]);
 
-  useEffect(() => {
-    const userRef = ref(db, `onlineUsers/${username}`);
-    set(userRef, true);
-    onDisconnect(userRef).remove();
-
-    const onlineRef = ref(db, 'onlineUsers');
-    const unsubscribeOnline = onValue(onlineRef, (snapshot) => {
-      const data = snapshot.val() || {};
-      setOnlineUsers(Object.keys(data));
-    });
-
-    return () => unsubscribeOnline();
-  }, [username]);
-
-  const handleTyping = () => {
+  const handleTyping = useCallback(() => {
     const typingRef = ref(db, 'typing/' + username);
     set(typingRef, true);
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
     typingTimeoutRef.current = setTimeout(() => set(typingRef, false), 3000);
-  };
+  }, [username]);
 
   const handleSend = async () => {
+    if (cooldown > 0) return;
     if (!message.trim() && !mediaFile) return;
 
     setUploading(true);
@@ -101,16 +137,19 @@ export const Chat = ({ username, onLogout }) => {
         imageUrl = uploaded.url;
       } catch (err) {
         console.error(err);
+        setUploading(false);
+        return;
       }
     }
 
-    push(ref(db, 'messages'), {
+    await push(ref(db, 'messages'), {
       text: message,
       sender: username,
       time: new Date().toLocaleTimeString(),
       imageUrl: imageUrl || null,
     });
 
+    setCooldown(5);
     setMessage('');
     setMediaFile(null);
     setMediaPreview(null);
@@ -136,26 +175,24 @@ export const Chat = ({ username, onLogout }) => {
     setMediaPreview(null);
   };
 
-  const toggleNotifications = () => {
-    if (Notification.permission !== 'granted') {
-      Notification.requestPermission().then((permission) => {
-        setNotificationsEnabled(permission === 'granted');
-      });
-    } else setNotificationsEnabled(!notificationsEnabled);
+  const openImageFullscreen = (imageUrl) => {
+    setExpandedImage(imageUrl);
   };
+
+  const closeImageFullscreen = () => {
+    setExpandedImage(null);
+  };
+
+  const isSendDisabled = cooldown > 0 || uploading || (!message.trim() && !mediaFile);
+  const buttonContent = cooldown > 0 ? cooldown : (uploading ? '📤' : <SendIcon />);
+  const placeholder = cooldown > 0 ? `Подождите ${cooldown} сек...` : "Введите сообщение...";
 
   return (
     <div className={styles.chatContainer}>
       <div className={styles.header}>
         <div className={styles.title}>Чат: {username}</div>
         <div className={styles.onlineStatus}>
-          🟢 Онлайн: {onlineUsers.join(', ')}
-          <button className={styles.notificationButton} onClick={toggleNotifications}>
-            {notificationsEnabled && <div className={styles.notificationDot} />}
-          </button>
-          <button onClick={onLogout} className={styles.logoutButton}>
-            Выйти
-          </button>
+          Онлайн: {onlineUsers.join(', ')}
         </div>
       </div>
 
@@ -174,7 +211,12 @@ export const Chat = ({ username, onLogout }) => {
               </div>
               {msg.imageUrl && (
                 <div className={styles.mediaMessage}>
-                  <img src={msg.imageUrl} alt="media" className={styles.mediaItem} />
+                  <img 
+                    src={msg.imageUrl} 
+                    alt="media" 
+                    className={styles.mediaItem}
+                    onClick={() => openImageFullscreen(msg.imageUrl)}
+                  />
                 </div>
               )}
               {msg.text && <div className={styles.messageText}>{msg.text}</div>}
@@ -185,12 +227,28 @@ export const Chat = ({ username, onLogout }) => {
 
       {mediaPreview && (
         <div className={styles.mediaPreview}>
-          <img src={mediaPreview} alt="preview" className={styles.mediaItem} />
+          <img 
+            src={mediaPreview} 
+            alt="preview" 
+            className={styles.mediaItem}
+            onClick={() => openImageFullscreen(mediaPreview)}
+          />
           <button onClick={removeMedia} className={styles.removeMediaButton}>
             ✕
           </button>
         </div>
       )}
+
+      {cooldown > 0 && (
+        <div className={styles.cooldownIndicator}>
+          ⏳ Следующее сообщение через: {cooldown} сек
+        </div>
+      )}
+
+      <ImageOverlay 
+        imageUrl={expandedImage}
+        onClose={closeImageFullscreen}
+      />
 
       <div className={styles.inputContainer}>
         <label className={styles.uploadButton}>
@@ -202,11 +260,17 @@ export const Chat = ({ username, onLogout }) => {
           value={message}
           onChange={(e) => { setMessage(e.target.value); handleTyping(); }}
           onKeyPress={handleKeyPress}
-          placeholder="Введите сообщение..."
+          placeholder={placeholder}
           rows={1}
+          disabled={cooldown > 0 || uploading}
         />
-        <button className={styles.sendButton} onClick={handleSend} disabled={uploading || (!message.trim() && !mediaFile)}>
-          {uploading ? '⏳' : <SendIcon />}
+        <button 
+          className={styles.sendButton} 
+          onClick={handleSend} 
+          disabled={isSendDisabled}
+          title={cooldown > 0 ? `Подождите ${cooldown} секунд` : "Отправить сообщение"}
+        >
+          {buttonContent}
         </button>
       </div>
     </div>
