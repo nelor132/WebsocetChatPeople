@@ -156,23 +156,28 @@ export const Chat = ({ username }) => {
     typingTimeoutRef.current = setTimeout(() => set(typingRef, false), 3000);
   }, [username]);
 
-const handleSend = async () => {
-  if (cooldown > 0) return;
-  if (!message.trim() && !mediaFile) return;
+  const handleSend = async () => {
+    if (cooldown > 0) return;
+    if (!message.trim() && !mediaFile) return;
 
-  setUploading(true);
-
-  let imageUrl = null;
-  if (mediaFile) {
-    try {
-      const uploaded = await uploadToFirebase(mediaFile);
-      imageUrl = uploaded.url;
-    } catch (err) {
-      console.error('Ошибка загрузки изображения:', err);
-      setUploading(false);
+    // Дополнительная проверка на пустое сообщение
+    if (!message.trim() && !mediaFile) {
       return;
     }
-  }
+
+    setUploading(true);
+
+    let imageUrl = null;
+    if (mediaFile) {
+      try {
+        const uploaded = await uploadToFirebase(mediaFile);
+        imageUrl = uploaded.url;
+      } catch (err) {
+        console.error(err);
+        setUploading(false);
+        return;
+      }
+    }
 
     await push(ref(db, 'messages'), {
       text: message.trim(), // обрезаем пробелы
@@ -248,6 +253,7 @@ const handleSend = async () => {
                     alt="media" 
                     className={styles.mediaItem}
                     onClick={() => openImageFullscreen(msg.imageUrl)}
+                    style={{ cursor: 'pointer' }}
                   />
                 </div>
               )}
@@ -264,6 +270,7 @@ const handleSend = async () => {
             alt="preview" 
             className={styles.mediaItem}
             onClick={() => openImageFullscreen(mediaPreview)}
+            style={{ cursor: 'pointer' }}
           />
           <button onClick={removeMedia} className={styles.removeMediaButton}>
             ✕
@@ -308,5 +315,3 @@ const handleSend = async () => {
     </div>
   );
 };
-
-
