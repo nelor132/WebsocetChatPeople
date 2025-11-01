@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ref, push, onValue, set, onDisconnect } from 'firebase/database';
+import { ref, push, onValue, set, onDisconnect, get } from 'firebase/database';
 import { db } from '../../shared/api/firebase';
 import { uploadToImageBB } from '../../shared/lib/imagebb';
 import { ImageOverlay } from './ImageOverlay';
@@ -32,6 +32,30 @@ export const Chat = ({ username }) => {
   const typingTimeoutRef = useRef(null);
   const cooldownRef = useRef(null);
 
+  // Функция для очистки пустых сообщений
+  const cleanupEmptyMessages = useCallback(async () => {
+    try {
+      const messagesRef = ref(db, 'messages');
+      const snapshot = await get(messagesRef);
+      const data = snapshot.val();
+      
+      if (data) {
+        const cleanupPromises = Object.entries(data).map(async ([key, msg]) => {
+          // Удаляем сообщения без отправителя или с пустым текстом
+          if (!msg.sender || !msg.sender.trim() || msg.sender === 'undefined' || 
+              (!msg.text?.trim() && !msg.imageUrl)) {
+            await set(ref(db, `messages/${key}`), null);
+            console.log('Удалено пустое сообщение:', key);
+          }
+        });
+        
+        await Promise.all(cleanupPromises);
+      }
+    } catch (error) {
+      console.error('Ошибка при очистке сообщений:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (cooldown > 0) {
       cooldownRef.current = setInterval(() => {
@@ -56,27 +80,31 @@ export const Chat = ({ username }) => {
     };
   }, [cooldown]);
 
-useEffect(() => {
-  const messagesRef = ref(db, 'messages');
-  const unsubscribeMessages = onValue(messagesRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const messagesArray = Object.entries(data)
-        .map(([key, msg]) => ({
-          ...msg,
-          isMe: msg.sender === username,
-          id: key,
-        }))
-        .filter(msg => 
-          msg.sender && 
-          msg.sender.trim() !== '' && 
-          (msg.text?.trim() !== '' || msg.imageUrl)
-        ); 
-      setMessages(messagesArray);
-    } else {
-      setMessages([]);
-    }
-  });
+  useEffect(() => {
+    // Очистка пустых сообщений при загрузке
+    cleanupEmptyMessages();
+
+    const messagesRef = ref(db, 'messages');
+    const unsubscribeMessages = onValue(messagesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const messagesArray = Object.entries(data)
+          .map(([key, msg]) => ({
+            ...msg,
+            isMe: msg.sender === username,
+            id: key,
+          }))
+          .filter(msg => 
+            msg.sender && 
+            msg.sender.trim() !== '' && 
+            msg.sender !== 'undefined' &&
+            (msg.text?.trim() !== '' || msg.imageUrl)
+          );
+        setMessages(messagesArray);
+      } else {
+        setMessages([]);
+      }
+    });
 
     const typingRef = ref(db, 'typing');
     const unsubscribeTyping = onValue(typingRef, (snapshot) => {
@@ -111,7 +139,7 @@ useEffect(() => {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [username]);
+  }, [username, cleanupEmptyMessages]);
 
   useEffect(() => {
     if (listRef.current) {
@@ -128,41 +156,42 @@ useEffect(() => {
     typingTimeoutRef.current = setTimeout(() => set(typingRef, false), 3000);
   }, [username]);
 
-const handleSend = async () => {
-  if (cooldown > 0) return;
-  if (!message.trim() && !mediaFile) return;
+  const handleSend = async () => {
+    if (cooldown > 0) return;
+    if (!message.trim() && !mediaFile) return;
 
-  if (!message.trim() && !mediaFile) {
-    return;
-  }
-
-  setUploading(true);
-
-  let imageUrl = null;
-  if (mediaFile) {
-    try {
-      const uploaded = await uploadToImageBB(mediaFile);
-      imageUrl = uploaded.url;
-    } catch (err) {
-      console.error(err);
-      setUploading(false);
+    // Дополнительная проверка на пустое сообщение
+    if (!message.trim() && !mediaFile) {
       return;
     }
-  }
 
-  await push(ref(db, 'messages'), {
-    text: message.trim(), 
-    sender: username,
-    time: new Date().toLocaleTimeString(),
-    imageUrl: imageUrl || null,
-  });
+    setUploading(true);
 
-  setCooldown(5);
-  setMessage('');
-  setMediaFile(null);
-  setMediaPreview(null);
-  setUploading(false);
-};
+    let imageUrl = null;
+    if (mediaFile) {
+      try {
+        const uploaded = await uploadToImageBB(mediaFile);
+        imageUrl = uploaded.url;
+      } catch (err) {
+        console.error(err);
+        setUploading(false);
+        return;
+      }
+    }
+
+    await push(ref(db, 'messages'), {
+      text: message.trim(), // обрезаем пробелы
+      sender: username,
+      time: new Date().toLocaleTimeString(),
+      imageUrl: imageUrl || null,
+    });
+
+    setCooldown(5);
+    setMessage('');
+    setMediaFile(null);
+    setMediaPreview(null);
+    setUploading(false);
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
