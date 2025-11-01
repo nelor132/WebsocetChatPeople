@@ -1,15 +1,15 @@
-
-
 .chatContainer,
 .nameSetup {
-   
   max-width: 50vw;
   margin: 20px auto;
   padding: 24px;
-  background: #fefefe;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #f0e6f6;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 .nameSetup {
@@ -19,15 +19,16 @@
 
 .title,
 .subtitle {
-    
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 16px;
-  color: #7b6cd9;
+  color: #4f46e5;
+  text-align: center;
 }
 
 .subtitle {
   font-weight: 500;
+  color: #6b7280;
 }
 
 .header {
@@ -35,12 +36,14 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .onlineStatus {
-  font-size: 1rem;
-  color: #264637;
-  font-weight: bold;
+  font-size: 0.9rem;
+  color: #24634e;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -48,7 +51,7 @@
 
 .typingIndicator {
   font-size: 0.75rem;
-  color: #a8a0b8;
+  color: #6b7280;
   margin-left: 8px;
   margin-bottom: 8px;
   display: block;
@@ -56,15 +59,17 @@
 }
 
 .messagesList {
-  height: 52vh;
+  height: 60vh;
   overflow-y: auto;
-  background: #faf7fc;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
   border-radius: 12px;
-  padding: 8px;
+  padding: 12px;
   margin-bottom: 16px;
   display: flex;
   flex-direction: column;
-  border: 1px solid #f0e6f6;
+  border: 1px solid #e2e8f0;
+  min-height: 0;
 }
 
 .messagesList::-webkit-scrollbar {
@@ -72,23 +77,23 @@
 }
 
 .messagesList::-webkit-scrollbar-track {
-  background: #f5f0fa;
+  background: #f1f5f9;
   border-radius: 3px;
 }
 
 .messagesList::-webkit-scrollbar-thumb {
-  background: #d8cde6;
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
 .messagesList::-webkit-scrollbar-thumb:hover {
-  background: #c5b5da;
+  background: #94a3b8;
 }
 
 .messageItem {
   display: flex;
   justify-content: flex-start;
-  padding: 4px 8px;
+  padding: 6px 8px;
 }
 
 .messageItem.myMessage {
@@ -96,148 +101,139 @@
 }
 
 .messageBubble {
-  padding: 8px;
+  padding: 12px 16px;
   border-radius: 18px;
   max-width: 80%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   animation: fadeIn 0.3s ease-out;
+  word-wrap: break-word;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
 }
 
 .messageBubble.myBubble {
-  background: linear-gradient(135deg, #1d5f75, #7b6cd9);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: white;
+  border: 1px solid rgba(79, 70, 229, 0.2);
 }
 
 .messageBubble.otherBubble {
-  background: white;
-  color: #6a5b8c;
-  border: 1px solid #e8deee;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #374151;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .messageMeta {
-  font-size: 1rem;
-  margin-bottom: 4px;
+  font-size: 0.75rem;
+  margin-bottom: 6px;
   opacity: 0.8;
+  font-weight: 500;
+}
+
+.messageBubble.myBubble .messageMeta {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.messageBubble.otherBubble .messageMeta {
+  color: #6b7280;
 }
 
 .messageText {
   word-break: break-word;
-  line-height: 1.4;
+  line-height: 1.5;
+  font-size: 0.95rem;
 }
 
-.inputContainer,
-.nameInputContainer,
-.mediaControls {
+.inputContainer {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
-}
-
-.textField,
-.nameInput {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #e8deee;
-  border-radius: 12px;
-  font-family: inherit;
-  background: #fefefe;
-  color: #6a5b8c;
+  align-items: flex-end;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .textField {
-  font-size: 20px;
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-family: inherit;
+  background: #ffffff;
+  color: #374151;
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 1rem;
   resize: vertical;
-  min-height: 36px;
-  max-height: 72px;
+  min-height: 44px;
+  max-height: 120px;
+  transition: all 0.2s ease;
 }
 
-.textField:focus,
-.nameInput:focus {
+.textField:focus {
   outline: none;
-  border-color: #b8a9d9;
-  box-shadow: 0 0 0 2px rgba(123, 108, 217, 0.1);
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  background: #ffffff;
 }
 
-.textField::placeholder,
-.nameInput::placeholder {
-  color: #b8a9d9;
+.textField:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.textField::placeholder {
+  color: #9ca3af;
 }
 
 .sendButton,
-.continueButton,
 .uploadButton,
-.notificationButton,
 .removeMediaButton {
   cursor: pointer;
   border: none;
   border-radius: 12px;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .sendButton {
-  min-width: 36px;
-  height: 36px;
-  background: #a8d8ea;
+  min-width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: white;
 }
 
 .sendButton:hover:not(:disabled) {
-  background: #7b6cd9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 .sendButton:disabled {
-  background: #e0d6f0;
+  background: #d1d5db;
   cursor: not-allowed;
   opacity: 0.6;
-}
-
-.continueButton {
-  min-width: 120px;
-  padding: 12px 24px;
-  background: #a8d8ea;
-  color: white;
-  font-size: 14px;
-}
-
-.continueButton:hover {
-  background: #7b6cd9;
-}
-
-.notificationButton {
-  background: none;
-  padding: 8px;
-  border-radius: 50%;
-}
-
-.notificationButton:hover {
-  background: rgba(168, 216, 234, 0.1);
-}
-
-.notificationDot {
-  width: 8px;
-  height: 8px;
-  background: #a8d8ea;
-  border-radius: 50%;
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  transform: none;
 }
 
 .uploadButton {
-  padding: 8px 12px;
-  background: #f5f0fa;
-  border: 1px solid #e8deee;
-  border-radius: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   font-size: 12px;
   gap: 4px;
-  color: #7b6cd9;
+  color: #4f46e5;
+  transition: all 0.2s ease;
 }
 
 .uploadButton:hover {
-  background: #e8deee;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-color: #4f46e5;
+  transform: translateY(-1px);
 }
 
 .uploadButton input {
@@ -246,57 +242,84 @@
 
 .removeMediaButton {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  background: #ffa8a8;
+  top: 6px;
+  right: 6px;
+  background: #ef4444;
   color: white;
-  width: 20px;
-  height: 20px;
-  font-size: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  transition: all 0.2s ease;
 }
 
-.mediaPreview {
-  margin-top: 8px;
-  position: relative;
-  display: inline-block;
+.removeMediaButton:hover {
+  background: #dc2626;
+  transform: scale(1.1);
 }
 
 .mediaItem,
-.videoItem,
 .messageBubble img,
-.messageBubble video {
-  max-width: 450px;
-  max-height: 300px;
-  border-radius: 12px;
-  object-fit: cover;
+.mediaPreview .mediaItem,
+.mediaMessage .mediaItem {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 10px;
+  object-fit: contain;
   display: block;
   margin-top: 6px;
-  border: 1px solid #f0e6f6;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mediaMessage .mediaItem {
+  max-height: 280px;
+}
+
+.mediaPreview .mediaItem {
+  max-width: 200px;
+  max-height: 150px;
 }
 
 .mediaMessage {
-  margin-top: 4px;
-}
-
-.mediaCaption {
-  font-size: 0.9rem;
-  margin-top: 4px;
-  color: #8a7aa8;
-}
-
-.fileInfo {
-  font-size: 0.8rem;
-  color: #a8a0b8;
-  margin-top: 4px;
-}
-
-.loadingIndicator {
-  font-size: 0.8rem;
-  color: #7b6cd9;
-  margin: 8px 0;
+  margin-top: 6px;
+  max-width: 100%;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  justify-content: flex-start;
+}
+
+.messageItem.myMessage .mediaMessage {
+  justify-content: flex-end;
+}
+
+.mediaPreview {
+  margin: 8px 0;
+  position: relative;
+  display: block;
+  max-width: fit-content;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.cooldownIndicator {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #dc2626;
+  background: #fef2f2;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid #fecaca;
+  font-weight: 600;
 }
 
 @keyframes fadeIn {
@@ -317,4 +340,71 @@
 
 .spinner {
   animation: spin 1s linear infinite;
+}
+
+/* Стили для полноэкранного просмотра изображений */
+.imageOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer;
+  padding: 20px;
+}
+
+.imageContainer {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.expandedImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.closeButton {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.mediaItem {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.mediaItem:hover {
+  transform: scale(1.02);
 }
