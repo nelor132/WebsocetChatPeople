@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ref, push, onValue, set, onDisconnect, get } from 'firebase/database';
 import { db } from '../../shared/api/firebase';
-import { uploadToImageBB } from '../../shared/lib/imagebb';
+import { uploadToFirebase } from '../../shared/lib/imageUpload';
 import { ImageOverlay } from './ImageOverlay';
 import styles from './Chat.module.scss';
 
@@ -313,3 +313,4 @@ export const Chat = ({ username }) => {
     </div>
   );
 };
+
